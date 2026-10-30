@@ -70,6 +70,28 @@ h2{font-size:22px}.mode{padding:12px}.mode strong{font-size:15px}
 footer{display:block}.overlay{padding:8px}.field{margin:8px 0}
 .admin-button{padding:8px}header{margin-bottom:10px}
 }
+
+/* Campaign information lives outside the playfield. */
+.match-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}
+.match-layout>.arena{min-width:0}
+.match-layout.has-campaign{grid-template-columns:minmax(0,1fr) 250px}
+main:has(.has-campaign){max-width:1400px}
+.campaign-sidebar{min-width:0;background:#101b2c;border:1px solid #354760;border-radius:16px;padding:18px;display:grid;gap:18px;color:#dce9f8}
+.campaign-sidebar h2{font-size:18px;margin:4px 0;overflow-wrap:anywhere}
+.campaign-sidebar h3{font-size:12px;margin:0 0 8px;color:var(--zone-color,#89f5df)}
+.campaign-sidebar p{font-size:12px;margin:5px 0;line-height:1.5;overflow-wrap:anywhere}
+.campaign-sidebar .eyebrow{font-size:9px;letter-spacing:1px;color:var(--zone-color,#89f5df)}
+.side-meter-label{display:flex;justify-content:space-between;gap:10px;font-size:11px;margin:10px 0 5px}
+.campaign-sidebar progress{display:block;width:100%;height:9px;border:0;border-radius:6px;overflow:hidden;appearance:none;background:#253347}
+.campaign-sidebar progress::-webkit-progress-bar{background:#253347;border-radius:6px}
+.campaign-sidebar progress::-webkit-progress-value{background:var(--meter,#92e6a0);border-radius:6px}
+.campaign-sidebar progress::-moz-progress-bar{background:var(--meter,#92e6a0);border-radius:6px}
+#sideMana{--meter:#85bfff}#sideEnemyHealth{--meter:var(--zone-color,#ff967b)}
+.side-event{border-top:1px solid #33445e;padding-top:12px;min-height:48px}
+#sideMessage{color:#e9f4ff}
+@media(max-width:900px){.match-layout.has-campaign{grid-template-columns:minmax(0,1fr)}.campaign-sidebar{grid-template-columns:1fr 1fr;padding:14px;gap:14px}.side-heading,.side-event{grid-column:1/-1}}
+@media(max-width:480px){.campaign-sidebar{grid-template-columns:minmax(0,1fr)}.side-heading,.side-event{grid-column:auto}}
+
 </style>
 </head>
 <body>
@@ -79,6 +101,7 @@ footer{display:block}.overlay{padding:8px}.field{margin:8px 0}
 <div class="badge">12 POWERS · 78 FUSIONS · 8 ADMIN CHARACTERS</div>
 </header>
 
+<div class="match-layout" id="matchLayout">
 <div class="arena">
 <canvas id="game" aria-label="Pong arena"></canvas>
 <button id="adminButton" class="admin-button" hidden>◆ ADMIN</button>
@@ -180,6 +203,15 @@ footer{display:block}.overlay{padding:8px}.field{margin:8px 0}
 </section>
 </div>
 </div>
+<aside id="campaignSidebar" class="campaign-sidebar" aria-label="Campaign health, objectives and status" hidden>
+<div class="side-heading"><p id="sideZone" class="eyebrow"></p><h2 id="sideEnemy"></h2><p id="sideDifficulty"></p></div>
+<div><h3 id="sidePlayer">Player</h3><div class="side-meter-label"><label for="sideHealth">Health</label><span id="sideHealthValue"></span></div><progress id="sideHealth" max="1" value="1"></progress><div class="side-meter-label"><label for="sideMana">Mana</label><span id="sideManaValue"></span></div><progress id="sideMana" max="1" value="1"></progress><p id="sideResources"></p></div>
+<div><h3>Enemy</h3><div class="side-meter-label"><label for="sideEnemyHealth">Health</label><span id="sideEnemyValue"></span></div><progress id="sideEnemyHealth" max="1" value="1"></progress><p id="sideEnemyState"></p></div>
+<div><h3 id="sideObjective">Objective</h3><p id="sideObjectiveDetail"></p></div>
+<div><h3>Active effects</h3><p id="sideEffects"></p></div>
+<div class="side-event"><p id="sideMessage" role="status" aria-live="polite"></p><p>W/S move · A/D/F skills · Q heal</p></div>
+</aside>
+</div>
 
 <div class="inventory">
 <div>
@@ -242,7 +274,7 @@ footer{display:block}.overlay{padding:8px}.field{margin:8px 0}
 <p id="desc1"></p>
 </div>
 </div>
-<p class="note">A: 7s · D: 9s · Ultimate / form switch: 20s. Three-shot skills reload after the third use. Gyro pumps: 5s, five per rally. Pool A/D repeat freely; Jump Shot: 20s. Admin powers replace normal pickups.</p>
+<p class="note">A: 7s · D: 9s · Ultimate / form switch: 20s. Three-shot skills reload after the third use. Gyro pumps: 3s, five per rally. Pool A/D repeat freely; Jump Shot: 20s. Admin powers replace normal pickups.</p>
 <button id="adminApply" class="primary">Apply characters</button>
 </div>
 </dialog>
@@ -314,7 +346,7 @@ desc:'A: chaotic spin. D: three portal nails. Ultimate: split the arena and beat
 gyro:{
 name:'Gyro Zeppeli',color:'#a3ff79',
 skills:['The Steel Ball','Check Mate','Rotation Pump'],
-desc:'A: charge a spinning steel ball, aim, then press A again. D: arm a save that triggers only when the enemy would score. Ultimate: add a speed-and-spin pump every 5s, up to five per rally.'
+desc:'A: charge a spinning steel ball, aim, then press A again. D: arm a save that triggers only when the enemy would score. Ultimate: add a speed-and-spin pump every 3s, up to five per rally.'
 },
 callen:{
 name:'Callen Harris',color:'#70baff',
@@ -414,7 +446,7 @@ function screen(s){
 state=s;keys.clear();touches.clear();acc=0;
 P.forEach(p=>{p.pending=null;p.chord=false;});
 $('overlay').hidden=s==='playing'||$('adminDialog').open;
-['home','setup','settings','guidePanel','paused','finished']
+['home','setup','settings','guidePanel','paused','finished','campaignSaves','campaignCreate','campaignHub','campaignTree','campaignInventory','campaignShop']
 .forEach(id=>$(id).hidden=id!==s);
 $('pauseButton').hidden=s!=='playing';
 $('adminButton').hidden=!['playing','paused'].includes(s);
@@ -425,7 +457,7 @@ if(s==='playing')document.activeElement?.blur();
 hud();
 }
 
-function start(){
+function start(){camp=null;$('again').textContent='Rematch';$('finishMenu').textContent='Main menu';modAngle=modTarget=modTurn=0;
 unlock();reset();screen('playing');
 $('ruleLabel').textContent=rules.type==='points'?
 'Target '+rules.target+' · Starting points '+rules.heads.join(' / '):
@@ -464,7 +496,7 @@ B={x:480,y:300,vx:dir(o)*Math.cos(a)*390,vy:Math.sin(a)*390,r:9};
 serve=1.1;lastHit=null;
 }
 
-function score(o){
+function score(o){if(mode==='campaign'){campaignGoal(o);return;}
 P[o].score++;transform(1-o);sound('pickup');
 if(won(o)){finish(o,'Points target reached');return;}
 rally(o);say(name(o)+' SCORES',C[o]);
@@ -547,7 +579,7 @@ if(now<a.shotLock)return false;
 if(a.shots===0)a.shots=3;
 a.shots--;a.shotLock=now+.25;
 if(!a.shots)a.cd[1]=now+9;
-}else a.cd[s]=now+(a.id==='gyro'&&s===2?5:CDS[s]);
+}else a.cd[s]=now+(a.id==='gyro'&&s===2?3:CDS[s]);
 return true;
 }
 
@@ -583,7 +615,7 @@ ring(B.x,B.y,k==='gyro'?'#95ff73':'#ff94d3');
 /* ADMIN MOVES */
 
 function cast(o,s){
-if(state!=='playing'||serve>0||cin||$('adminDialog').open)return;
+if(state!=='playing'||serve>0||cin||effectLock()||lockedMove(o,s)||$('adminDialog').open)return;
 const a=P[o].admin;
 if(!a)return;
 if(a.id==='gyro'&&s===2&&a.pumps>=5){
@@ -854,7 +886,7 @@ if(fx.spin>now)F.spin=Math.max(F.spin,fx.spin);
 
 function give(o,type){
 const p=P[o];
-if(p.admin||p.fused)return;
+if(p.admin||p.fused||!mval('base')[type])return;
 const s=p.slots.findIndex(x=>!x);
 if(s<0)return;
 p.slots[s]={type,used:false};
@@ -862,7 +894,7 @@ sound('pickup');hud();return true;
 }
 
 function use(o,s){
-if(state!=='playing'||serve>0||cin)return;
+if(state!=='playing'||serve>0||cin||effectLock())return;
 if(P[o].admin){cast(o,s);return;}
 if(hold?.kind==='compass'&&hold.o===o&&hold.slot===s){
 P[o].slots[s]=null;fireAim();return;
@@ -898,7 +930,7 @@ hud();
 }
 
 function combine(o){
-if(state!=='playing'||serve>0||cin)return;
+if(state!=='playing'||serve>0||cin||effectLock())return;if(!P[o].admin&&!mval('fusions')){say('FUSIONS DISABLED');return;}
 const p=P[o];
 if(p.admin){cast(o,2);return;}
 
@@ -1392,7 +1424,7 @@ return false;
 function move(i,dt){
 const p=P[i],center=p.y+p.h/2,a=p.admin;
 p.h=Math.min((arena.b-arena.t)*.7,
-100*(a?.form==='bully'?1.75:1)*(p.giant>now?2:1)*(p.small>now?.5:1));
+100*mval('height')*(a?.form==='bully'?1.75:1)*(p.giant>now?2:1)*(p.small>now?.5:1));
 if(U?.name==='Shoebox')p.h=52;
 p.y=center-p.h/2;p.x=i?arena.r-48:arena.l+34;
 let v=0,target=null;
@@ -1480,11 +1512,11 @@ if(serve>0){serve-=dt;return;}
 
 walls=walls.filter(w=>w.end>now);
 zones=zones.filter(z=>z.end>now);
-if(now>nextZone&&zones.length<3){
-nextZone=now+2.4;
+if(mode!=='campaign'&&allowedBases().length&&now>nextZone&&zones.length<3){
+nextZone=now+2.4/mval('spawn');
 zones.push({
 x:rnd(arena.l+(arena.r-arena.l)*.32,arena.l+(arena.r-arena.l)*.68),
-y:rnd(arena.t+40,arena.b-40),t:Math.floor(rnd(0,12)),end:now+13
+y:rnd(arena.t+40,arena.b-40),t:allowedBases()[Math.floor(rnd(0,allowedBases().length))],end:now+13
 });
 }
 
@@ -1539,7 +1571,7 @@ if(Math.abs(B.vx)<s*.18)B.vx=Math.sign(B.vx||1)*s*.18;
 const sp=speed(),cap=2400+pump*120;
 if(sp>cap){B.vx*=cap/sp;B.vy*=cap/sp;}
 const ox=B.x,oy=B.y;
-const mult=(F.fast>now?2.1:1)*(F.slow>now?.32:1);
+B.vy+=mval('gravity')*step;const mult=(F.fast>now?2.1:1)*(F.slow>now?.32:1)*mval('speed');if(!U&&B.r<=18)B.r=(mode==='campaign'&&camp?.meteor>now?18:9)*mval('size');
 B.x+=B.vx*step*mult;B.y+=B.vy*step*mult;
 
 if(B.y<arena.t+B.r||B.y>arena.b-B.r){
@@ -1551,7 +1583,7 @@ const a=rnd(.2,1.2),s=speed();
 B.vx=Math.sign(B.vx)*Math.cos(a)*s;
 B.vy=(top?1:-1)*Math.sin(a)*s;
 }
-if(U?.name==='Turbo Box'){B.vx*=1.1;B.vy*=1.1;}
+if(mval('chaos')){const s=speed(),a=rnd(.15,1.25),f=mval('chaos');B.vx=B.vx*(1-f)+Math.sign(B.vx)*Math.cos(a)*s*f;B.vy=B.vy*(1-f)+(top?1:-1)*Math.sin(a)*s*f;}if(U?.name==='Turbo Box'){B.vx*=1.1;B.vy*=1.1;}
 tone(220,.04);
 }
 
@@ -1572,9 +1604,9 @@ if(y+B.r>=p.y&&y-B.r<=p.y+p.h&&!U?.ghost&&
 !(fx.jump&&fx.jump.o!==i&&now<fx.jump.end)){
 B.x=face;
 const a=clamp((y-p.y-p.h/2)/(p.h/2),-1,1)*1.08;
-const s=Math.min(1800+pump*200,speed()*1.04+25);
+const s=Math.min(1800+pump*200,speed()*(1+mval('accel'))+25*mval('accel')/.04);
 B.vx=dir(i)*Math.cos(a)*s;B.vy=Math.sin(a)*s;
-lastHit=i;burst(B.x,y,C[i],18);tone(420,.06);
+lastHit=i;burst(B.x,y,C[i],18);tone(420,.06);if(mode==='campaign')campaignPaddle(i);
 }
 }
 
@@ -1833,7 +1865,7 @@ x+80,y+28,10,'#bcddbb'
 }
 
 function drawWorld(){
-g.fillStyle=fx.intellectEnd>now?'#082c61':'#0a1322';
+g.fillStyle=mode==='campaign'&&camp?ZONES[camp.zone].bg:fx.intellectEnd>now?'#082c61':'#0a1322';
 g.fillRect(0,0,W,H);
 g.lineWidth=1;
 for(let x=0;x<W;x+=60)line(x,0,x,H,'#ffffff06',1);
@@ -1957,7 +1989,7 @@ circle(B.x+Math.cos(now*14+i*TAU/3)*23,
 B.y+Math.sin(now*14+i*TAU/3)*23,4,color);
 }
 
-drawNewEffects();
+drawAbilityActors();drawNewEffects();if(mode==='campaign')drawCampaign();
 
 if(hold){
 const h=hold;
@@ -2073,7 +2105,7 @@ function draw(){
 g.setTransform(canvas.width/W,0,0,canvas.height/H,0,0);
 g.fillStyle='#050913';g.fillRect(0,0,W,H);g.save();
 if(shake&&vfx)g.translate(rnd(-shake,shake)*vfx,rnd(-shake,shake)*vfx);
-rotation=fx.rotate>now&&!cin?(now-fx.rotateAt)*2.1:0;scale=1;
+rotation=rotationValue();scale=1;
 if(rotation){
 const co=Math.abs(Math.cos(rotation)),si=Math.abs(Math.sin(rotation));
 scale=.94*Math.min(W/(W*co+H*si),H/(W*si+H*co));
@@ -2089,21 +2121,21 @@ g.save();g.beginPath();g.rect(480+split/2,0,480-split/2,H);
 g.clip();g.translate(split/2,0);drawWorld();g.restore();
 }else drawWorld();
 
-g.restore();
+g.restore();if(mode!=='campaign'&&mods.dark&&Math.floor(now)%2===1){g.fillStyle='#010207';g.fillRect(0,0,W,H);text('BLACKOUT',480,300,20,'#38506b');}
 if(cin)drawCinema();
-text(name(0),25,28,11,'#adc3dd','left');
+if(mode!=='campaign'){text(name(0),25,28,11,'#adc3dd','left');
 text(P[0].score,25,75,40,C[0],'left');
 text(name(1),935,28,11,'#adc3dd','right');
 text(P[1].score,935,75,40,C[1],'right');
-text(ruleText(),480,24,12,'#bbd4e8');
+text(ruleText(),480,24,12,'#bbd4e8');}
 
 if(!cin){
 if(U)text(U.name+' · '+Math.ceil(U.end-now)+'s',480,47,12,U.color);
-if(banner?.end>now){
+if(mode!=='campaign'&&banner?.end>now){
 g.fillStyle='#07101fe8';g.fillRect(140,80,680,33);
 text(banner.s,480,102,14,banner.c);
 }
-if(serve>0&&state==='playing'){
+if(mode!=='campaign'&&serve>0&&state==='playing'){
 text('GET READY',480,230,25);
 text('Hit glowing zones. Forge powers. Break rules.',480,390,12,'#a6bdd6');
 }
@@ -2174,7 +2206,7 @@ $('sound').value=Math.round(volume*100);$('vfx').value=Math.round(vfx*100);
 $('soundValue').textContent=Math.round(volume*100)+'%';
 $('vfxValue').textContent=Math.round(vfx*100)+'%';
 }
-function setup(m){
+function setup(m){camp=null;rulesPane.hidden=false;modsPane.hidden=true;
 mode=m;
 $('setupMode').textContent=m==='bot'?'PLAYER VERSUS BOT':'LOCAL TWO PLAYER';
 $('headLabel').textContent=(m==='bot'?'Bot':'P2')+' starting points';
@@ -2256,7 +2288,7 @@ const v=$('adminTarget').value;
 $('card0').hidden=v==='1';$('card1').hidden=v==='0';
 }
 
-$('adminButton').onclick=()=>{
+$('adminButton').onclick=()=>{if(mode==='campaign')return;
 adminBack=state;
 $('adminLogin').hidden=false;$('adminPick').hidden=true;
 $('adminCode').value='';$('adminError').textContent='';
@@ -2412,6 +2444,168 @@ while(acc>=DT&&state==='playing'){acc-=DT;tick(DT,false);}
 }else acc=0;
 draw();requestAnimationFrame(frame);
 }
+
+function drawAbilityActors(){
+if(U){const u=U,e=now-u.start,c=u.color,o=u.o;
+if(u.name==='Solar Flare'){const x=o?760:200,y=300;g.save();g.translate(x,y);g.rotate(e*.7);for(let k=0;k<16;k++){const a=k*TAU/16;line(Math.cos(a)*48,Math.sin(a)*48,Math.cos(a)*(70+Math.sin(e*9+k)*8),Math.sin(a)*(70+Math.sin(e*9+k)*8),'#ffd16b',5);}g.shadowColor='#ffca54';g.shadowBlur=35*vfx;circle(0,0,42,'#ffbc48');circle(-8,-8,27,'#ffe697');g.restore();}
+if(u.name==='Black Hole'){const x=o?290:670;circle(x,300,45,'#02030a');for(let k=0;k<4;k++){g.save();g.translate(x,300);g.rotate(e*3+k);g.scale(1,.45);circle(0,0,52+k*13,c,false);g.restore();}}
+if(['Orbital Slingshot','Prism Lance','Zero Point'].includes(u.name)){g.save();g.translate(480,300);g.rotate(e*3);g.strokeStyle=c;g.lineWidth=4;g.beginPath();for(let k=0;k<6;k++){const a=k*TAU/6;const x=Math.cos(a)*48,y=Math.sin(a)*48;k?g.lineTo(x,y):g.moveTo(x,y);}g.closePath();g.stroke();circle(0,0,20,c+'55');g.restore();}
+if(u.name==='Wrecking Ball'){line(o?760:200,250,B.x,B.y,c,5);circle(o?760:200,250,12,c);circle(B.x,B.y,B.r+6,c,false);}
+if(['Sawblade','Saw Orbit'].includes(u.name)){const arr=u.name==='Sawblade'?[{x:B.x,y:B.y,r:B.r+5}]:u.nodes;for(const n of arr){g.save();g.translate(n.x,n.y);g.rotate(e*9);for(let k=0;k<12;k++){const a=k*TAU/12;line(Math.cos(a)*n.r,Math.sin(a)*n.r,Math.cos(a+.16)*(n.r+8),Math.sin(a+.16)*(n.r+8),c,4);}g.restore();}}
+if(u.name==='Titan Fist'&&e<1.2)fist(u.origin.x-dir(o)*(100-e*100),u.origin.y,2.4,c);
+if(u.name==='Orbit Cannon'&&!u.fired){g.save();g.translate(P[o].x+dir(o)*38,P[o].y+P[o].h/2);g.rotate(u.angle);g.fillStyle='#8796bb';g.fillRect(-10,-20,85,40);g.fillStyle=c;g.fillRect(55,-13,35,26);g.restore();}
+if(u.name==='Storm Gate'){g.save();g.translate(480,300);g.scale(.3,1);circle(0,0,220,c,false);g.restore();}
+if(u.name==='Grappling Hook'){line(P[o].x,P[o].y+P[o].h/2,B.x,B.y,c,4);circle(B.x,B.y,18,c,false);}
+}
+for(const w of walls){if(mode==='campaign')continue;const left=Math.max(0,w.end-now);text('WALL '+left.toFixed(1)+'s',clamp(w.x+w.w/2,70,890),clamp(w.y-12,130,570),10,'#ffd5b3');}
+P.forEach((p,i)=>{if(mode!=='campaign'&&p.guard>now)text('RETURN '+Math.ceil(p.guard-now)+'s',i?880:80,510,12,'#a5ffda');});
+if(trip){g.setLineDash([5,7]);g.strokeStyle='#a5ffda';g.lineWidth=2;g.beginPath();g.moveTo(trip.x,trip.y);g.bezierCurveTo(P[trip.o].x-dir(trip.o)*40,trip.route,P[trip.o].x+dir(trip.o)*50,trip.route,trip.toX,trip.toY);g.stroke();g.setLineDash([]);}
+}
+
+/* CAMPAIGN, MODIFIERS, AND ACCESS */
+const MOD_DEFAULT={speed:1,accel:.04,paddle:1,spawn:1,size:1,height:1,gravity:0,chaos:0,dark:false,rotate:false,fusions:true,base:Array(12).fill(true),admin:Object.fromEntries(Object.keys(chars).map(k=>[k,[true,true,true]]))};
+let mods=JSON.parse(JSON.stringify(MOD_DEFAULT)),modAngle=0,modTarget=0,modTurn=0;
+function mval(k){return mode==='campaign'?MOD_DEFAULT[k]:mods[k];}
+function effectLock(){return hold?.kind==='intelligence'&&now<hold.end;}
+function rotationValue(){return mode!=='campaign'&&mods.rotate?modAngle:0;}
+function allowedBases(){return bases.map((_,i)=>i).filter(i=>mval('base')[i]);}
+function lockedMove(o,s){return mode!=='campaign'&&P[o]?.admin&&!mods.admin[P[o].admin.id][s];}
+const ZONES=[{name:'Green Zone',color:'#92e18a',bg:'#0b231c',names:['Sprout Scout','Bramble Beetle','Moss Moth','Vine Fox','Thorn Warden','Dew Sprite','Ancient Oak','Crown of Thorns']},{name:'Desert Zone',color:'#f3ce7b',bg:'#342616',names:['Dune Scarab','Sand Mason','Mirage Moth','Canyon Jackal','Obelisk Keeper','Glass Serpent','Sandstone Sentinel','Sultan of the Dunes']},{name:'Magma Zone',color:'#ff967b',bg:'#301418',names:['Cinder Imp','Basalt Golem','Ash Wraith','Lava Hound','Furnace Keeper','Ember Drake','Obsidian Knight','The Caldera Sovereign']}];
+const DIFF={easy:{name:'Easy',hp:.75,dmg:.65,ai:.7,hazard:.7,player:1.3,mana:1.3,cd:.8,cost:.85,reward:.9,price:.9,goal:.8},medium:{name:'Medium',hp:1,dmg:1,ai:1,hazard:1,player:1,mana:1,cd:1,cost:1,reward:1,price:1,goal:1},hard:{name:'Hard',hp:1.3,dmg:1.3,ai:1.18,hazard:1.2,player:.95,mana:.9,cd:1.1,cost:1.05,reward:1.15,price:1.1,goal:1.15},extreme:{name:'Extreme',hp:1.65,dmg:1.6,ai:1.4,hazard:1.5,player:.9,mana:.8,cd:1.2,cost:1.15,reward:1.3,price:1.2,goal:1.3},impossible:{name:'Impossible',hp:2.1,dmg:2,ai:1.65,hazard:1.8,player:.8,mana:.65,cd:1.35,cost:1.25,reward:1.5,price:1.35,goal:1.5}};
+const BRANCHES=['Healing','Defense','Magic','Melee'];
+const SKILLS=[
+['Dewdrop',0,0,8,1.5,'heal',12],['Renewal',0,0,20,12,'regen',7],['Sand Balm',0,1,18,9,'heal',32],['Oasis Bloom',0,1,35,18,'heal',58],['Ember Mend',0,2,22,10,'heal',48],['Phoenix Heart',0,2,45,25,'heal',85],
+['Leaf Guard',1,0,12,6,'shield',18],['Bark Skin',1,0,24,12,'shield',38],['Sand Wall',1,1,20,10,'wall',4],['Dune Shell',1,1,30,14,'shield',60],['Magma Armor',1,2,35,16,'shield',85],['Obsidian Aegis',1,2,45,24,'immune',4],
+['Seed Shot',2,0,7,2,'shot',750],['Vine Spin',2,0,17,7,'spin',6],['Sand Cut',2,1,12,4,'cut',1],['Mirage Curve',2,1,23,9,'curve',6],['Ember Shot',2,2,25,10,'ember',1.6],['Meteor Ball',2,2,40,18,'meteor',1600],
+['Leaf Slap',3,0,8,2.5,'bat',900],['Bark Giant',3,0,22,10,'giant',1.7],['Scimitar Sweep',3,1,18,6,'bat',1200],['Dune Dash',3,1,12,4,'dash',1],['Lava Claw',3,2,27,9,'bat',1750],['Titan Paddle',3,2,40,18,'giant',2.7]
+];
+const KIND_TEXT={heal:'Restore health.',regen:'Heal every second for five seconds.',shield:'Absorb incoming damage.',wall:'Put a temporary wall in front of your paddle.',immune:'Prevent damage briefly.',shot:'Launch the ball straight at the enemy.',spin:'Give the ball strong curve.',cut:'Cut the ball backward at a sharp angle.',curve:'Steer the ball toward a weak point.',ember:'Empower the next ball hit against the enemy.',meteor:'Enlarge and accelerate the ball.',bat:'A short melee stance: hit nearby incoming balls.',giant:'Grow your paddle for six seconds.',dash:'Dash your paddle to the ball’s height.'};
+const SAVE_KEY='neon-pong-campaign-v1';
+let saves=[null,null,null],saveError='',saveSlot=-1,profile=null,camp=null,campEquip=-1,authenticated=false;
+try{const raw=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');if(raw!==null){if(!Array.isArray(raw)||raw.length!==3)throw Error();saves=raw.map(p=>{if(!p)return null;if(p.v!==1||!DIFF[p.difficulty]||!Array.isArray(p.ranks)||p.ranks.length!==24||!Array.isArray(p.bar)||p.bar.length!==3||!Array.isArray(p.cleared)||p.cleared.length!==24||!Number.isInteger(p.level)||p.level<1||p.level>40||!Number.isFinite(p.gold)||!Number.isFinite(p.xp)||!Number.isFinite(p.points)||!p.potions||!p.boost)throw Error();p.ranks=p.ranks.map(n=>clamp(Math.floor(n)||0,0,3));p.bar=p.bar.map(n=>Number.isInteger(n)&&n>=0&&n<24&&p.ranks[n]>0?n:null);p.unlocked=clamp(Math.floor(p.unlocked)||0,0,23);return p;});}}catch{saveError='Save data could not be read. Existing browser data has not been overwritten.';}
+function saveCampaign(){if(saveError&&saveError.includes('could not be read'))return false;try{if(saveSlot>=0&&profile)saves[saveSlot]=profile;localStorage.setItem(SAVE_KEY,JSON.stringify(saves));saveError='';return true;}catch{saveError='Saving is unavailable in this browser. Keep this tab open; progress may be lost on reload.';return false;}}
+function newProfile(difficulty){return{v:1,difficulty,level:1,xp:0,points:0,gold:0,unlocked:0,cleared:Array(24).fill(false),ranks:Array(24).fill(0),bar:[null,null,null],potions:{heal:0,xp:0,gold:0},boost:{xp:false,gold:false}};}
+function xpNeed(l){return 80+l*20;}
+function maxHp(){return Math.round((120+(profile.level-1)*4)*DIFF[profile.difficulty].player);}
+function maxMana(){return 100+(profile.level-1)*2;}
+function grantXP(n){profile.xp+=n;while(profile.level<40&&profile.xp>=xpNeed(profile.level)){profile.xp-=xpNeed(profile.level);profile.level++;profile.points++;}if(profile.level===40)profile.xp=0;}
+function section(id,html){const el=document.createElement('section');el.id=id;el.className='panel';el.hidden=true;el.innerHTML=html;$('overlay').appendChild(el);return el;}
+const cstyle=document.createElement('style');cstyle.textContent=`.campaign-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.campaign-grid button{padding:12px 5px;min-height:70px}.campaign-grid small{display:block;font-size:9px;margin-top:5px}.campaign-stats{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;color:#a9f0d7;font-size:12px;margin:12px 0}.campaign-scroll{max-height:300px;overflow:auto;padding:5px}.tree-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.tree-column{border:1px solid #354760;border-radius:12px;padding:10px;text-align:left}.tree-column button{width:100%;margin:5px 0;text-align:left;font-size:11px;padding:9px}.tree-column small{display:block;color:#aabbd1;font-size:10px;margin:4px 0}.mod-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.mod-grid label{display:block;font-size:11px;text-align:left}.mod-grid input[type=range]{width:100%}.mod-checks{display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:left;font-size:11px}.mod-checks label{padding:4px}.campaign-notice{color:#ffcfa3;font-size:11px}.camp-tabs{margin:10px 0}.panel.wide{width:min(800px,100%)}#accessDialog{text-align:center;max-width:430px}#accessDialog::backdrop{background:#070c19f5}.skill-detail{text-align:left;border:1px solid #354760;border-radius:10px;padding:12px;margin:10px 0}.skill-detail p{margin:5px 0}.save-card{display:flex;gap:10px;align-items:center;justify-content:space-between;text-align:left;padding:12px;border:1px solid #354760;border-radius:12px}.save-card button{font-size:12px}.save-card small{display:block;color:#acbed4}@media(max-width:650px){.campaign-scroll{max-height:180px}.campaign-grid{gap:4px}.campaign-grid button{padding:7px 2px;min-height:50px}.tree-grid{grid-template-columns:1fr}.tree-column{padding:6px}.mod-grid{grid-template-columns:1fr}}`;document.head.appendChild(cstyle);
+const campaignButton=document.createElement('button');campaignButton.id='campaignButton';campaignButton.className='mode';campaignButton.style.cssText='width:100%;margin-top:12px';campaignButton.innerHTML='<strong>Campaign ↗</strong><small>Three worlds · 24 encounters · Saved progression</small>';$('home').querySelector('.grid').after(campaignButton);
+section('campaignSaves','<p class="eyebrow">YOUR ADVENTURES</p><h2>Choose a save slot.</h2><div id="saveCards" class="stack"></div><p id="saveNotice" class="campaign-notice"></p><div class="actions"><button id="savesBack">Back</button></div>');
+section('campaignCreate','<p class="eyebrow">A FRESH START</p><h2>Choose difficulty.</h2><div class="field"><label for="campaignDifficulty">Difficulty stays with this save</label><select id="campaignDifficulty"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option><option value="extreme">Extreme</option><option value="impossible">Impossible</option></select></div><p>Difficulty changes enemy health, damage, movement, hazards, challenge goals, your health, mana, cooldowns, rewards and shop prices.</p><p>You begin at level 1 with no skills. Earn one skill point for every level gained, up to level 40.</p><div class="actions"><button id="createBack">Back</button><button id="createCampaign" class="primary">Begin adventure</button></div>');
+section('campaignHub','<p class="eyebrow" id="campaignHeading"></p><h2>Choose an encounter.</h2><div id="campaignStats" class="campaign-stats"></div><div class="actions camp-tabs"><button id="openTree">Skill tree</button><button id="openInventory">Inventory</button><button id="openShop">Potion shop</button></div><div id="campaignMap" class="campaign-scroll"></div><p id="campaignNotice" class="campaign-notice"></p><button id="hubBack">Save slots</button>').classList.add('wide');
+section('campaignTree','<p class="eyebrow">FOUR PATHS</p><h2>Skill tree</h2><p id="treeStats"></p><div class="campaign-scroll tree-grid" id="skillTree"></div><div class="actions"><button id="treeBack">Back</button><button id="treeInventory">Equip skills</button></div>').classList.add('wide');
+section('campaignInventory','<h2>Inventory</h2><p>Equip three different skills. Keys: A, D, F. Click a slot, then choose an unlocked skill.</p><div id="equipSlots" class="actions"></div><div id="inventorySkills" class="campaign-scroll"></div><div id="inventoryPotions" class="actions"></div><p id="inventoryNotice"></p><button id="inventoryBack">Back</button>');
+section('campaignShop','<h2>Potion shop</h2><p id="shopGold"></p><div class="stack" id="shopItems"></div><p>XP and gold potions double the reward from your next victory. Healing potions restore 45% health during a fight. Boosts do not stack.</p><button id="shopBack">Back</button>');
+function renderSaves(){ $('saveCards').innerHTML=saves.map((p,i)=>`<div class="save-card"><div><strong>Slot ${i+1}</strong><small>${p?'Level '+p.level+' · '+DIFF[p.difficulty].name+' · '+p.cleared.filter(Boolean).length+'/24 cleared':'New adventure'}</small></div><button data-slot="${i}" ${saveError.includes('could not be read')?'disabled':''}>${p?'Continue':'Create'}</button>${p?'<button data-erase="'+i+'">Erase</button>':''}</div>`).join('');$('saveNotice').textContent=saveError||'Progress saves in this browser. Clearing browser storage removes these saves.';$('saveCards').querySelectorAll('[data-slot]').forEach(b=>b.onclick=()=>{saveSlot=Number(b.dataset.slot);if(saves[saveSlot]){profile=saves[saveSlot];openHub();}else screen('campaignCreate');});$('saveCards').querySelectorAll('[data-erase]').forEach(b=>b.onclick=()=>{const i=Number(b.dataset.erase);if(confirm('Erase campaign slot '+(i+1)+'? This cannot be undone.')){saves[i]=null;if(saveSlot===i){profile=null;saveSlot=-1;}saveCampaign();renderSaves();}});screen('campaignSaves');}
+function profileStats(){return 'Lv. '+profile.level+'/40 · XP '+(profile.level===40?'MAX':profile.xp+'/'+xpNeed(profile.level))+' · '+profile.points+' skill points · '+profile.gold+' gold';}
+const CHALLENGES=['Weak-point hunt','Break the barricade','Survive the storm','Volley chain','Thread the gate','Orb collection','Mini-boss','Zone boss'];
+function openHub(){camp=null;mode='campaign';$('campaignHeading').textContent='SLOT '+(saveSlot+1)+' · '+DIFF[profile.difficulty].name.toUpperCase();$('campaignStats').textContent=profileStats();$('campaignNotice').textContent=saveError||(profile.cleared.every(Boolean)?'Campaign complete! Replay encounters and build toward level 40.':'Replays grant half the original XP. First victories unlock the next encounter.');$('campaignMap').innerHTML=ZONES.map((z,zi)=>`<h3 style="color:${z.color}">${z.name}</h3><div class="campaign-grid">${z.names.map((n,j)=>{const id=zi*8+j;return `<button data-level="${id}" ${id>profile.unlocked?'disabled':''} style="border-color:${z.color}55">${profile.cleared[id]?'✓ ':''}${j+1}<small>${n}</small><small>${CHALLENGES[j]}</small></button>`;}).join('')}</div>`).join('');$('campaignMap').querySelectorAll('[data-level]').forEach(b=>b.onclick=()=>startEncounter(Number(b.dataset.level)));screen('campaignHub');}
+function branchIndex(i){return i%6;}
+function canLearn(i){const s=SKILLS[i],k=branchIndex(i);return profile.points>0&&profile.ranks[i]<3&&Math.floor(profile.unlocked/8)>=s[2]&&(profile.ranks[i]>0||k===0||profile.ranks[i-1]>0);}
+function renderTree(){ $('treeStats').textContent=profileStats()+' · Each unlock or rank costs 1 point. Max rank 3.';$('skillTree').innerHTML=BRANCHES.map((b,bi)=>`<div class="tree-column"><strong>${b}</strong>${SKILLS.map((s,i)=>s[1]!==bi?'':`<button data-learn="${i}" ${canLearn(i)?'':'disabled'}><strong>${s[0]} · ${profile.ranks[i]}/3</strong><small>${ZONES[s[2]].name} · ${s[3]} mana · ${s[4]}s</small><small>${KIND_TEXT[s[5]]}</small><small>${Math.floor(profile.unlocked/8)<s[2]?'Reach this zone':branchIndex(i)>0&&!profile.ranks[i-1]&&!profile.ranks[i]?'Learn the previous skill first':profile.ranks[i]===3?'MAX RANK':profile.ranks[i]?'Upgrade · 1 point':'Learn · 1 point'}</small></button>`).join('')}</div>`).join('');$('skillTree').querySelectorAll('[data-learn]').forEach(b=>b.onclick=()=>{const i=Number(b.dataset.learn);if(!canLearn(i))return;profile.points--;profile.ranks[i]++;saveCampaign();renderTree();});screen('campaignTree');}
+function skillCost(i){return Math.ceil(SKILLS[i][3]*DIFF[profile.difficulty].cost*(1-(profile.ranks[i]-1)*.05));}
+function skillCD(i){return SKILLS[i][4]*DIFF[profile.difficulty].cd*(1-(profile.ranks[i]-1)*.08);}
+function renderInventory(){ $('equipSlots').innerHTML=profile.bar.map((v,i)=>`<button data-equip="${i}" style="border-color:${campEquip===i?'#89f5df':'#354760'}">${['A','D','F'][i]} · ${v===null?'Empty':SKILLS[v][0]}</button>`).join('');$('equipSlots').querySelectorAll('[data-equip]').forEach(b=>b.onclick=()=>{campEquip=Number(b.dataset.equip);renderInventory();});const owned=SKILLS.map((s,i)=>profile.ranks[i]?`<button data-skill="${i}" class="skill-detail" style="width:100%"><strong>${s[0]} · Rank ${profile.ranks[i]}</strong><p>${skillCost(i)} mana · ${skillCD(i).toFixed(1)}s · ${KIND_TEXT[s[5]]}</p></button>`:'').join('');$('inventorySkills').innerHTML=owned||'<p>No skills yet. Win encounters, gain levels, then visit the skill tree.</p>';$('inventorySkills').querySelectorAll('[data-skill]').forEach(b=>b.onclick=()=>{if(campEquip<0){$('inventoryNotice').textContent='Choose A, D or F first.';return;}const i=Number(b.dataset.skill);profile.bar=profile.bar.map((v,k)=>k!==campEquip&&v===i?null:v);profile.bar[campEquip]=i;saveCampaign();renderInventory();});$('inventoryPotions').innerHTML=['xp','gold'].map(k=>`<button data-drink="${k}" ${profile.potions[k]<=0||profile.boost[k]?'disabled':''}>${k.toUpperCase()} ×2 · ${profile.potions[k]} owned${profile.boost[k]?' · ACTIVE':''}</button>`).join('');$('inventoryPotions').querySelectorAll('[data-drink]').forEach(b=>b.onclick=()=>{const k=b.dataset.drink;if(profile.potions[k]>0&&!profile.boost[k]){profile.potions[k]--;profile.boost[k]=true;saveCampaign();renderInventory();}});$('inventoryNotice').textContent=saveError||'Healing potions: '+profile.potions.heal+' · Use Q in battle. Boosts last until your next victory.';screen('campaignInventory');}
+function renderShop(){ $('shopGold').textContent=profile.gold+' gold';$('shopItems').innerHTML=[['heal','Healing potion',35],['xp','Double XP potion',70],['gold','Double gold potion',70]].map(([k,n,c])=>{const price=Math.round(c*DIFF[profile.difficulty].price);return `<button data-buy="${k}" data-price="${price}" ${profile.gold<price?'disabled':''}>${n} · ${price} gold · Own ${profile.potions[k]}</button>`;}).join('');$('shopItems').querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>{const price=Number(b.dataset.price),k=b.dataset.buy;if(profile.gold<price)return;profile.gold-=price;profile.potions[k]++;saveCampaign();renderShop();});screen('campaignShop');}
+$('campaignButton').onclick=renderSaves;$('savesBack').onclick=()=>{mode='bot';screen('home');};$('createBack').onclick=renderSaves;$('createCampaign').onclick=()=>{profile=newProfile($('campaignDifficulty').value);saves[saveSlot]=profile;saveCampaign();openHub();};$('hubBack').onclick=renderSaves;$('openTree').onclick=renderTree;$('openInventory').onclick=()=>{campEquip=-1;renderInventory();};$('openShop').onclick=renderShop;$('treeBack').onclick=$('inventoryBack').onclick=$('shopBack').onclick=openHub;$('treeInventory').onclick=()=>{campEquip=-1;renderInventory();};
+function startEncounter(id){if(!profile||id>profile.unlocked)return;mode='campaign';rules={type:'campaign',target:999,seconds:99999,heads:[0,0]};reset();const zone=Math.floor(id/8),stage=id%8,d=DIFF[profile.difficulty],boss=stage>=6;const health=Math.round((boss?(stage===7?200+zone*100:130+zone*65):65+zone*35+stage*8)*d.hp);camp={id,zone,stage,d,boss,hp:maxHp(),maxHp:maxHp(),mana:maxMana(),enemy:health,maxEnemy:health,damage:Math.round((10+zone*5+(boss?3:0))*d.dmg),cd:[0,0,0],shield:0,immune:0,regen:0,nextRegen:0,bat:0,batPower:0,giant:0,giantPower:1,curve:0,ember:0,meteor:0,streak:0,goal:Math.ceil((3+zone)*d.goal),time:Math.round((28+zone*10)*d.goal),duration:Math.round((28+zone*10)*d.goal),age:0,nextHazard:3/d.hazard,hazards:[],objects:[],target:{x:680,y:280,r:30},gate:300,gateCool:0,nextContact:0,potionCD:0,done:false,flash:0};if(stage===1){const count=Math.ceil((5+zone*2)*d.goal);for(let k=0;k<count;k++)camp.objects.push({x:560+k%3*92,y:120+Math.floor(k/3)*75,w:66,h:24,dead:false});}if(stage===5){const count=Math.ceil((4+zone)*d.goal);for(let k=0;k<count;k++)camp.objects.push({x:550+k%3*105,y:140+Math.floor(k/3)*130,r:22,dead:false});}P[1].h=boss?125:85;serve=1.1;nextZone=Infinity;screen('playing');$('ruleLabel').textContent=ZONES[zone].name+' · '+CHALLENGES[stage]+' · '+DIFF[profile.difficulty].name;$('status').textContent='W/S move · A/D/F skills · Q healing potion · Esc pause';say(ZONES[zone].names[stage],ZONES[zone].color,2.5);}
+function campaignEnd(win){if(!camp||camp.done)return;camp.done=true;const c=camp;if(win){const replay=profile.cleared[c.id],baseXP=100+c.id*18+(c.boss?90:0);const xp=Math.round(baseXP*c.d.reward*(replay?.5:1)*(profile.boost.xp?2:1));const gold=Math.round((32+c.id*5+(c.boss?30:0))*c.d.reward*(profile.boost.gold?2:1));const old=profile.level;grantXP(xp);profile.gold+=gold;profile.cleared[c.id]=true;profile.unlocked=Math.min(23,Math.max(profile.unlocked,c.id+1));profile.boost.xp=profile.boost.gold=false;saveCampaign();$('winner').textContent=c.id===23?'CAMPAIGN CONQUERED!':'ENCOUNTER CLEARED!';$('result').textContent='+'+xp+' XP · +'+gold+' gold'+(replay?' · Replay: half base XP':'')+(profile.level>old?' · Level '+profile.level+'! +'+(profile.level-old)+' skill points':'')+(saveError?' · '+saveError:'');}else{$('winner').textContent='TRY AGAIN';$('result').textContent='Your progression is safe. Try another skill loadout, buy potions, or replay earlier levels.';}cin=hold=trip=null;screen('finished');$('again').textContent='Retry encounter';$('finishMenu').textContent='Campaign map';}
+function campaignHurt(amount){if(!camp||camp.done||camp.immune>now)return;const absorbed=Math.min(camp.shield,amount);camp.shield-=absorbed;camp.hp=Math.max(0,camp.hp-(amount-absorbed));camp.flash=now+.2;burst(P[0].x,P[0].y+P[0].h/2,'#ff8599',30);if(camp.hp<=0)campaignEnd(false);}
+function campaignDamage(amount){if(!camp||camp.done)return;camp.enemy=Math.max(0,camp.enemy-amount);burst(camp.target.x,camp.target.y,ZONES[camp.zone].color,25);if(camp.enemy<=.001)campaignEnd(true);}
+function campaignGoal(o){if(!camp||camp.done)return;if(o===1){campaignHurt(camp.damage);camp.streak=0;}else if(camp.stage>=6){const boost=camp.ember>now?1.6:1;camp.ember=0;campaignDamage((24+profile.level*.9)*boost);}else if(camp.stage===3){camp.streak++;if(camp.streak>=camp.goal){camp.streak=0;campaignDamage(camp.maxEnemy/4);}}if(state==='playing'){rally(o);P[1].h=camp.boss?125:85;nextZone=Infinity;}}
+function campaignPaddle(i){if(!camp||camp.done)return;if(i===0&&camp.stage===3){camp.streak++;if(camp.streak>=camp.goal){camp.streak=0;campaignDamage(camp.maxEnemy/4);say('VOLLEY CHAIN!',ZONES[camp.zone].color);}}}
+function campaignSkill(slot){if(!camp||camp.done||state!=='playing'||serve>0)return;const id=profile.bar[slot];if(id===null)return;const s=SKILLS[id],rank=profile.ranks[id],cost=skillCost(id);if(camp.cd[slot]>now||camp.mana<cost)return;camp.mana-=cost;camp.cd[slot]=now+skillCD(id);const power=s[6]*(1+.2*(rank-1));say(s[0],ZONES[s[2]].color);sound('pickup');switch(s[5]){case'heal':camp.hp=Math.min(camp.maxHp,camp.hp+power);break;case'regen':camp.regen=now+5;camp.regenPower=power;camp.nextRegen=now;break;case'shield':camp.shield=Math.min(camp.maxHp,camp.shield+power);break;case'wall':wall(P[0].x+70,clamp(P[0].y-35,0,440),12,160,0,power);break;case'immune':camp.immune=now+power;break;case'shot':cancel();straight(0,power);break;case'spin':F.spin=now+power;break;case'cut':cancel();cut();lastHit=0;break;case'curve':camp.curve=now+power;break;case'ember':camp.ember=now+12;cancel();launch(0,1050);break;case'meteor':cancel();B.r=18;camp.meteor=now+5;launch(0,power);break;case'bat':camp.bat=now+2;camp.batPower=power;break;case'giant':camp.giant=now+6;camp.giantPower=power;break;case'dash':P[0].y=clamp(B.y-P[0].h/2,0,H-P[0].h);camp.immune=now+.3;break;}hud();}
+function campaignPotion(){if(!camp||camp.done||state!=='playing'||profile.potions.heal<=0||camp.potionCD>now||camp.hp>=camp.maxHp)return;profile.potions.heal--;camp.hp=Math.min(camp.maxHp,camp.hp+camp.maxHp*.45);camp.potionCD=now+5;saveCampaign();say('HEALING POTION','#a6ffbf');hud();}
+function campaignPre(dt){if(!camp||camp.done)return;const c=camp;c.age+=dt;c.mana=Math.min(maxMana(),c.mana+dt*7*c.d.mana);c.target.x=650+Math.sin(c.age*.8)*110;c.target.y=300+Math.sin(c.age*(.8+c.zone*.25))*180;c.gate=300+Math.sin(c.age*(.8+c.zone*.3))*170;
+if(c.regen>now&&now>=c.nextRegen){c.nextRegen=now+1;c.hp=Math.min(c.maxHp,c.hp+c.regenPower);}
+if(c.curve>now&&!hold&&!trip){const a=Math.atan2(c.target.y-B.y,c.target.x-B.x),old=Math.atan2(B.vy,B.vx),change=clamp(Math.atan2(Math.sin(a-old),Math.cos(a-old)),-dt*2.5,dt*2.5),s=Math.max(600,speed());B.vx=Math.cos(old+change)*s;B.vy=Math.sin(old+change)*s;lastHit=0;}
+if(c.bat>now&&B.vx<0&&B.x<P[0].x+135&&Math.abs(B.y-P[0].y-P[0].h/2)<P[0].h/2+65&&!hold){B.x=P[0].x+140;launch(0,c.batPower);c.bat=0;ring(B.x,B.y,ZONES[c.zone].color,250);}
+if(c.meteor<=now&&B.r===18)B.r=9;
+if(c.stage===2&&serve<=0){c.time=Math.max(0,c.time-dt);c.enemy=c.maxEnemy*c.time/c.duration;if(c.time<=0){campaignEnd(true);return;}}
+if(serve<=0&&c.age>=c.nextHazard){const frequency=(c.boss?3.5:6)/c.d.hazard;c.nextHazard=c.age+frequency;const yy=clamp(P[0].y+P[0].h/2+rnd(-100,100),60,540);c.hazards.push({x:100+rnd(-25,80),y:yy,start:now,fire:now+Math.max(.45,1.1/c.d.hazard),end:now+Math.max(.45,1.1/c.d.hazard)+.35,hit:false});if(c.id===23){c.hazards.push({x:130,y:clamp(600-yy,60,540),start:now,fire:now+1,end:now+1.35,hit:false});if(B.vx>0&&Math.random()<.6){B.vx=-Math.max(700,Math.abs(B.vx));B.vy+=rnd(-250,250);say('SOVEREIGN · REVERSE FLARE','#ff9680');}}}
+for(const h of c.hazards)if(!h.hit&&now>=h.fire){h.hit=true;if(Math.abs(P[0].y+P[0].h/2-h.y)<P[0].h/2+32)campaignHurt(c.damage*.6);}
+c.hazards=c.hazards.filter(h=>h.end>now);
+}
+function campaignPost(dt){if(!camp||camp.done||state!=='playing'||serve>0||hold||trip)return;const c=camp;if(c.stage===0||c.boss){const open=!c.boss||c.age%6<2.2;if(open&&lastHit===0&&now>c.nextContact&&Math.hypot(B.x-c.target.x,B.y-c.target.y)<B.r+30){c.nextContact=now+.7;const extra=c.ember>now?1.6:1;c.ember=0;campaignDamage((c.boss?18+profile.level*.6:c.maxEnemy/Math.ceil((4+c.zone)*c.d.goal))*extra);B.vx=-Math.abs(B.vx);ring(c.target.x,c.target.y,ZONES[c.zone].color);}}
+if(c.stage===1){const count=c.objects.length;for(const b of c.objects)if(!b.dead&&B.x+B.r>b.x&&B.x-B.r<b.x+b.w&&B.y+B.r>b.y&&B.y-B.r<b.y+b.h){b.dead=true;B.vx=-B.vx;campaignDamage(c.maxEnemy/count);burst(b.x,b.y,ZONES[c.zone].color,30);break;}}
+if(c.stage===4&&Math.abs(B.x-480)<B.r+12&&now>c.gateCool){c.gateCool=now+.2;const gap=110/c.d.goal;if(Math.abs(B.y-c.gate)<gap/2){if(B.vx>0&&lastHit===0)campaignDamage(c.maxEnemy/Math.ceil((5+c.zone)*c.d.goal));}else{B.vx=-B.vx;B.x+=Math.sign(B.vx)*(B.r+16);ring(480,B.y,ZONES[c.zone].color,70);}}
+if(c.stage===5){const count=c.objects.length;for(const b of c.objects){const yy=b.y+Math.sin(c.age*1.5+b.x)*30;if(!b.dead&&Math.hypot(B.x-b.x,B.y-yy)<B.r+b.r){b.dead=true;c.mana=Math.min(maxMana(),c.mana+12);campaignDamage(c.maxEnemy/count);ring(b.x,yy,ZONES[c.zone].color);}}}
+}
+function campaignHud(){if(!profile||!camp)return;const c=camp;$('title0').textContent='PLAYER · LV '+profile.level+' · '+Math.ceil(c.hp)+' HP · '+Math.floor(c.mana)+' MANA';$('title1').textContent=ZONES[c.zone].names[c.stage].toUpperCase();for(let s=0;s<3;s++){const id=profile.bar[s],el=s<2?$('s0'+s):$('f0'),left=Math.max(0,c.cd[s]-now);if(id===null){el.innerHTML='<strong>'+['A','D','F'][s]+' · Empty</strong><small>Equip a skill in the campaign map</small>';el.disabled=true;}else{el.innerHTML='<strong>'+['A','D','F'][s]+' · '+SKILLS[id][0]+'</strong><small>'+skillCost(id)+' mana · '+(left?left.toFixed(1)+'s':'READY')+'</small>';el.disabled=state!=='playing'||c.done||left>0||c.mana<skillCost(id);}el.style.setProperty('--color',id===null?'#71859b':ZONES[SKILLS[id][2]].color);}$('s10').innerHTML='<strong>'+CHALLENGES[c.stage]+'</strong><small>'+Math.ceil(c.enemy)+' / '+c.maxEnemy+' HP</small>';$('s11').innerHTML='<strong>'+DIFF[profile.difficulty].name+'</strong><small>Shield '+Math.ceil(c.shield)+' · Potions '+profile.potions.heal+'</small>';$('s10').disabled=$('s11').disabled=true;$('f1').textContent='Q · Healing potion · '+profile.potions.heal+' owned';$('f1').disabled=state!=='playing'||profile.potions.heal<=0||c.potionCD>now||c.hp>=c.maxHp;$('adminButton').hidden=true;}
+function drawCampaign(){if(!camp)return;const c=camp,z=ZONES[c.zone];g.save();g.fillStyle=z.color+'0c';g.fillRect(0,0,W,H);if(c.stage===0||c.boss){const open=!c.boss||c.age%6<2.2;if(open){circle(c.target.x,c.target.y,30,z.color+'55');circle(c.target.x,c.target.y,30,z.color,false);line(c.target.x-14,c.target.y,c.target.x+14,c.target.y,z.color,3);line(c.target.x,c.target.y-14,c.target.x,c.target.y+14,z.color,3);}}
+if(c.stage===1)for(const b of c.objects)if(!b.dead){g.fillStyle=z.color;g.fillRect(b.x,b.y,b.w,b.h);g.strokeStyle='#fff8';g.strokeRect(b.x+3,b.y+3,b.w-6,b.h-6);}
+if(c.stage===4){const gap=110/c.d.goal;line(480,0,480,c.gate-gap/2,z.color,10);line(480,c.gate+gap/2,480,H,z.color,10);}
+if(c.stage===5)for(const b of c.objects)if(!b.dead){const y=b.y+Math.sin(c.age*1.5+b.x)*30;circle(b.x,y,b.r,z.color+'44');circle(b.x,y,b.r,z.color,false);text(c.zone===0?'✿':c.zone===1?'◆':'✦',b.x,y+8,24,z.color);}
+for(const h of c.hazards){if(now<h.fire){g.setLineDash([6,6]);line(0,h.y,210,h.y,z.color+'aa',2);g.setLineDash([]);text('!',80,h.y-15,20,z.color);}else{line(0,h.y,220,h.y,z.color,12);circle(110,h.y,38,z.color+'66');}}
+if(c.shield>0||c.immune>now){line(P[0].x+23,P[0].y-12,P[0].x+23,P[0].y+P[0].h+12,'#a8edff',5);}
+if(c.bat>now)line(P[0].x+45,P[0].y-30,P[0].x+100,P[0].y+P[0].h+30,z.color,9);
+const ey=P[1].y+P[1].h/2;circle(866,ey,c.boss?35:23,z.color+'44');circle(866,ey,c.boss?35:23,z.color,false);text(c.zone===0?'❧':c.zone===1?'◆':'♨',866,ey+10,c.boss?38:28,z.color);
+if(c.flash>now){g.fillStyle='#ff426622';g.fillRect(0,0,W,H);}g.restore();}
+function syncCampaignSidebar(){
+const side=$('campaignSidebar'),layout=$('matchLayout');
+const active=mode==='campaign'&&!!camp&&(['playing','paused','finished'].includes(state)||(state==='settings'&&back==='paused'));
+const next='match-layout'+(active?' has-campaign':'');
+side.hidden=!active;
+if(layout.className!==next){layout.className=next;requestAnimationFrame(resize);}
+if(!active||!profile)return;
+const c=camp,z=ZONES[c.zone];
+const put=(id,value)=>{const el=$(id),s=String(value);if(el.textContent!==s)el.textContent=s;};
+side.style.setProperty('--zone-color',z.color);
+put('sideZone',z.name+' · Encounter '+(c.id%8+1));
+put('sideEnemy',z.names[c.stage]);
+put('sidePlayer','Player · Level '+profile.level);
+put('sideDifficulty',DIFF[profile.difficulty].name);
+put('sideHealthValue',Math.ceil(c.hp)+' / '+c.maxHp);
+put('sideManaValue',Math.floor(c.mana)+' / '+maxMana());
+put('sideEnemyValue',Math.ceil(c.enemy)+' / '+c.maxEnemy);
+for(const [id,value,max] of [['sideHealth',c.hp,c.maxHp],['sideMana',c.mana,maxMana()],['sideEnemyHealth',c.enemy,c.maxEnemy]]){const el=$(id);el.max=max;el.value=clamp(value,0,max);}
+put('sideObjective',CHALLENGES[c.stage]);
+const instructions=[
+'Hit the moving weak point with the ball to drain enemy health.',
+'Break every block with the ball. '+c.objects.filter(o=>!o.dead).length+' blocks remain.',
+'Survive for '+Math.ceil(c.time)+' more seconds.',
+'Build a volley chain: '+c.streak+' / '+c.goal+' hits.',
+'Send the ball through the moving gap toward the enemy.',
+'Collect every glowing orb with the ball. '+c.objects.filter(o=>!o.dead).length+' orbs remain.',
+'Score goals or strike the exposed weak point.',
+'Score goals or strike the exposed weak point.'
+];
+put('sideObjectiveDetail',instructions[c.stage]);
+put('sideResources','Shield: '+Math.ceil(c.shield)+' · Healing potions: '+profile.potions.heal);
+const states=[];
+if(c.immune>now)states.push('Invulnerable '+(c.immune-now).toFixed(1)+'s');
+if(c.regen>now)states.push('Regeneration '+Math.ceil(c.regen-now)+'s');
+if(c.bat>now)states.push('Melee stance '+(c.bat-now).toFixed(1)+'s');
+if(c.giant>now)states.push('Giant paddle '+Math.ceil(c.giant-now)+'s');
+if(c.curve>now)states.push('Ball guidance '+Math.ceil(c.curve-now)+'s');
+if(c.ember>now)states.push('Ember shot ready');
+if(c.meteor>now)states.push('Meteor ball '+Math.ceil(c.meteor-now)+'s');
+if(F.spin>now)states.push('Spin '+Math.ceil(F.spin-now)+'s');
+if(P[0].stun>now)states.push('Movement locked '+Math.ceil(P[0].stun-now)+'s');
+if(P[0].guard>now)states.push('Return '+Math.ceil(P[0].guard-now)+'s');
+const activeWalls=walls.filter(w=>w.end>now);if(activeWalls.length)states.push('Wall '+Math.max(...activeWalls.map(w=>w.end-now)).toFixed(1)+'s');
+if(c.potionCD>now)states.push('Potion ready in '+Math.ceil(c.potionCD-now)+'s');
+put('sideEffects',states.length?states.join(' · '):'No active effects');
+put('sideEnemyState',c.boss?(c.age%6<2.2?'Weak point exposed':'Weak point guarded'):'');
+put('sideMessage',state==='paused'?'Paused':state==='finished'?'Encounter complete':state==='settings'?'Settings · match paused':serve>0?'Get ready · '+Math.max(0,serve).toFixed(1)+'s':banner?.end>now?banner.s:'Keep the ball in play.');
+}
+
+const oldTick=tick;tick=function(dt,advanceClock=true){if(mode==='campaign'&&camp){campaignPre(dt);if(state!=='playing')return;oldTick(dt,false);campaignPost(dt);}else{if(mods.rotate&&now>=modTurn){modTurn=now+rnd(4,7);modTarget+=rnd(-PI,PI);}modAngle+=(modTarget-modAngle)*Math.min(1,dt*.65);oldTick(dt,advanceClock);}};
+const oldMove=move;move=function(i,dt){if(mode==='campaign'&&camp){if(i===1){const c=camp,p=P[1];p.x=912;p.h=c.boss?125:85;botThink-=dt;if(botThink<=0){botThink=.15/c.d.ai;botY=B.vx>0?B.y+rnd(-38,38)/c.d.ai:300;}if(p.stun<=now)p.y+=clamp(botY-p.h/2-p.y,-(240+c.zone*45+(c.stage===7?45:0))*c.d.ai*dt,(240+c.zone*45+(c.stage===7?45:0))*c.d.ai*dt);p.y=clamp(p.y,0,H-p.h);return;}oldMove(i,dt);if(camp.giant>now){const cy=P[0].y+P[0].h/2;P[0].h=Math.min(360,100*camp.giantPower);P[0].y=clamp(cy-P[0].h/2,0,H-P[0].h);}return;}oldMove(i,dt*mval('paddle'));};
+const oldHud=hud;hud=function(){syncCampaignSidebar();if(mode==='campaign'&&camp){campaignHud();return;}oldHud();if(effectLock()){for(const id of ['s00','s01','s10','s11','f0','f1'])$(id).disabled=true;}P.forEach((p,i)=>{if(p.admin)for(let s=0;s<3;s++)if(lockedMove(i,s)){const el=s===2?$('f'+i):$('s'+i+s);el.disabled=true;el.title='Disabled in match modifiers';}});};
+const oldUse=use;use=function(o,s){if(mode==='campaign'){if(o===0)campaignSkill(s);return;}oldUse(o,s);};
+const oldCombine=combine;combine=function(o){if(mode==='campaign'){if(o===0)campaignSkill(2);return;}oldCombine(o);};
+const oldRestart=$('restart').onclick;$('restart').onclick=$('again').onclick=()=>{if(mode==='campaign'&&camp)startEncounter(camp.id);else oldRestart();};$('quit').onclick=$('finishMenu').onclick=()=>{if(mode==='campaign'&&profile)openHub();else{reset();screen('home');}};$('f1').onclick=()=>{if(mode==='campaign')campaignPotion();else combine(1);};
+document.addEventListener('keydown',e=>{if(!authenticated){if(e.code==='Escape')e.preventDefault();return;}if(mode==='campaign'&&camp&&state==='playing'&&!$('adminDialog').open){const i=['KeyA','KeyD','KeyF'].indexOf(e.code);if(i>=0||e.code==='KeyQ'){e.preventDefault();e.stopImmediatePropagation();if(!e.repeat){unlock();i>=0?campaignSkill(i):campaignPotion();}}}},true);
+/* Match modifier tab. */
+const setPanel=$('setup'),rulesPane=document.createElement('div'),modsPane=document.createElement('div'),tabRow=document.createElement('div');rulesPane.id='rulesPane';modsPane.id='modsPane';modsPane.className='campaign-scroll';modsPane.hidden=true;tabRow.className='actions';tabRow.innerHTML='<button id="rulesTab">Match rules</button><button id="modsTab">Modifiers</button>';const children=[...setPanel.children];children.filter(e=>!e.matches('.eyebrow,h2,.actions')).forEach(e=>rulesPane.appendChild(e));setPanel.querySelector('h2').after(tabRow,rulesPane,modsPane);
+const fields=[['speed','Ball speed',.5,2.5,.1],['accel','Speed gain per paddle hit',0,.15,.01],['paddle','Player movement',.5,2,.1],['spawn','Ability spawn rate',.25,3,.25],['size','Ball size',.5,2,.1],['height','Paddle height',.5,2,.1],['gravity','Ball gravity',-500,500,50],['chaos','Random wall bounces',0,1,.1]];
+modsPane.innerHTML='<div class="mod-grid">'+fields.map(([k,n,min,max,step])=>`<label>${n} <output id="modOut-${k}">${mods[k]}</output><input data-mod="${k}" type="range" min="${min}" max="${max}" step="${step}" value="${mods[k]}"></label>`).join('')+'</div><div class="mod-checks">'+[['dark','1 second dark / 1 second normal'],['rotate','Random arena rotation'],['fusions','Allow normal fusions']].map(([k,n])=>`<label><input type="checkbox" data-toggle="${k}" ${mods[k]?'checked':''}> ${n}</label>`).join('')+'</div><h4>Enabled pickups</h4><div class="mod-checks">'+bases.map((b,i)=>`<label><input type="checkbox" data-base="${i}" checked> ${b[0]}</label>`).join('')+'</div><h4>Enabled admin skills</h4><div class="mod-checks">'+Object.entries(chars).map(([k,c])=>c.skills.map((s,i)=>`<label><input type="checkbox" data-admin="${k}" data-skill="${i}" checked> ${c.name} · ${['A','D','Ultimate'][i]}</label>`).join('')).join('')+'</div><p>These modifiers apply to bot and local matches. Campaign uses its own difficulty rules.</p><button id="resetMods">Reset modifiers</button>';
+$('rulesTab').onclick=()=>{rulesPane.hidden=false;modsPane.hidden=true;};$('modsTab').onclick=()=>{rulesPane.hidden=true;modsPane.hidden=false;};modsPane.querySelectorAll('[data-mod]').forEach(e=>e.oninput=()=>{mods[e.dataset.mod]=Number(e.value);$('modOut-'+e.dataset.mod).textContent=e.value;});modsPane.querySelectorAll('[data-toggle]').forEach(e=>e.onchange=()=>mods[e.dataset.toggle]=e.checked);modsPane.querySelectorAll('[data-base]').forEach(e=>e.onchange=()=>mods.base[Number(e.dataset.base)]=e.checked);modsPane.querySelectorAll('[data-admin]').forEach(e=>e.onchange=()=>mods.admin[e.dataset.admin][Number(e.dataset.skill)]=e.checked);$('resetMods').onclick=()=>{mods=JSON.parse(JSON.stringify(MOD_DEFAULT));modsPane.querySelectorAll('[data-mod]').forEach(e=>{e.value=mods[e.dataset.mod];e.oninput();});modsPane.querySelectorAll('[data-toggle]').forEach(e=>e.checked=mods[e.dataset.toggle]);modsPane.querySelectorAll('[data-base],[data-admin]').forEach(e=>e.checked=true);};
+const access=document.createElement('dialog');access.id='accessDialog';access.innerHTML='<p class="eyebrow">NEON PONG</p><h2>Enter the access code.</h2><form id="accessForm"><div class="field"><input id="accessCode" type="password" inputmode="numeric" autocomplete="off" maxlength="6" aria-label="Game access code" placeholder="••••••" required></div><p id="accessError" class="error"></p><button class="primary">Enter game</button></form>';document.body.appendChild(access);access.addEventListener('cancel',e=>e.preventDefault());$('accessForm').onsubmit=e=>{e.preventDefault();if($('accessCode').value!=='568123'){$('accessError').textContent='Incorrect code.';return;}authenticated=true;access.close();unlock();};
+queueMicrotask(()=>{access.showModal();$('accessCode').focus();});
 
 reset();syncSettings();screen('home');resize();
 window.addEventListener('resize',resize);
